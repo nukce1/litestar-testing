@@ -1,0 +1,42 @@
+services:
+  test-db:
+    container_name: test-db
+    hostname: db-host
+    image: postgres:16-alpine
+    restart: always
+    env_file: .env
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      start_period: 20s
+      interval: 10s
+      retries: 2
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./volumes/postgres:/var/lib/postgresql/data/
+    networks:
+      - test-network
+   
+          
+  test-app:
+    container_name: test-app
+    env_file: .env
+    build:
+      dockerfile: Dockerfile
+    command: ./scripts/run.sh
+    depends_on:
+      test-db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./logs:/testlitestar/logs
+    networks:
+      - test-network
+
+
+networks:
+  test-network:
+    name: test-network
+    driver: bridge
+
